@@ -1,16 +1,15 @@
 name: Semantic Release Test
 
-
 on:
   pull_request:
     types:
       - closed
     branches:
       - main
-  push:      
+  push:
     branches:
       - main
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
       version_type:
         description: 'Version bump type'
@@ -23,21 +22,22 @@ on:
 
 jobs:
   release:
- 
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest 
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-  
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }} 
-
-    
-      - name: Setup Python (for Python projects)
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
@@ -45,11 +45,12 @@ jobs:
       - name: Install Python versioning tools
         run: |
           pip install bump2version
+      
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-    
+      
       - name: Determine version bump type
         id: version_bump
         run: |
@@ -73,16 +74,10 @@ jobs:
         run: |
           # Create .bumpversion.cfg if it doesn't exist
           if [ ! -f ".bumpversion.cfg" ]; then
-            # Try to get current version from pyproject.toml or setup.py
-            if [ -f "pyproject.toml" ]; then
-              CURRENT_VERSION=$(grep -E '^version\s*=' pyproject.toml | sed -E 's/version\s*=\s*"(.*)"/\1/' | head -1)
-            elif [ -f "setup.py" ]; then
-              CURRENT_VERSION=$(grep -E 'version\s*=' setup.py | sed -E "s/.*version\s*=\s*['\"]([^'\"]*)['\"].*/\1/" | head -1)
-            else
-              CURRENT_VERSION="0.1.0"
-            fi
+            # Get current version from pyproject.toml
+            CURRENT_VERSION=$(grep -E '^version\s*=' pyproject.toml | sed -E 's/version\s*=\s*"(.*)"/\1/' | head -1)
             
-            cat > .bumpversion.cfg << EOF
+            cat > .bumpversion.cfg << 'EOF'
           [bumpversion]
           current_version = ${CURRENT_VERSION:-0.1.0}
           commit = True
@@ -92,11 +87,10 @@ jobs:
           [bumpversion:file:pyproject.toml]
           search = version = "{current_version}"
           replace = version = "{new_version}"
-          
-          [bumpversion:file:setup.py]
-          search = version="{current_version}"
-          replace = version="{new_version}"
           EOF
+            
+            # Replace placeholder with actual version
+            sed -i "s/\${CURRENT_VERSION:-0.1.0}/$CURRENT_VERSION/" .bumpversion.cfg
           fi
           
           # Bump version
@@ -107,9 +101,11 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "Bumped to version: $NEW_VERSION"
- 
+      
       - name: Push changes
-        run: | 
+        run: |
+          git push origin main --follow-tags
+      
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
@@ -120,8 +116,8 @@ jobs:
           body: |
             ## Changes in v${{ steps.bump_version.outputs.new_version }}
             
-            Project type: ${{ steps.version_bump.outputs.type }}
+            Version bump type: ${{ steps.version_bump.outputs.type }}
             
-            See the [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.bump_version.outputs.new_version }}) for details..
-          draft: false 
+            See the [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.bump_version.outputs.new_version }}) for details.
+          draft: false
           prerelease: false
