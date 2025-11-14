@@ -77,9 +77,9 @@ jobs:
             # Get current version from pyproject.toml
             CURRENT_VERSION=$(grep -E '^version\s*=' pyproject.toml | sed -E 's/version\s*=\s*"(.*)"/\1/' | head -1)
             
-            cat > .bumpversion.cfg << 'EOF'
+            cat > .bumpversion.cfg << EOF
           [bumpversion]
-          current_version = ${CURRENT_VERSION:-0.1.0}
+          current_version = $CURRENT_VERSION
           commit = True
           tag = False
           message = chore(release): bump version to {new_version} [skip ci]
