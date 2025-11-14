@@ -88,6 +88,8 @@ jobs:
           search = version = "{current_version}"
           replace = version = "{new_version}"
           EOF
+           # Add to git so bump2version can track it
+            git add .bumpversion.cfg
           fi
           
           # Bump version
