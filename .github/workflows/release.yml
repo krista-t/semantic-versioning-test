@@ -88,9 +88,6 @@ jobs:
           search = version = "{current_version}"
           replace = version = "{new_version}"
           EOF
-            
-            # Replace placeholder with actual version
-            sed -i "s/\${CURRENT_VERSION:-0.1.0}/$CURRENT_VERSION/" .bumpversion.cfg
           fi
           
           # Bump version
