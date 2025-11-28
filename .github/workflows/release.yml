@@ -116,7 +116,7 @@ jobs:
             ## Changes in v${{ steps.bump_version.outputs.new_version }}
             
             Version bump type: ${{ steps.version_bump.outputs.type }}
-            And I can add any message I want here :)
+            This is a custom message for the demo :)
             
             See the [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.bump_version.outputs.new_version }}) for details.
           draft: false
